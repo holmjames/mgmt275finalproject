@@ -1,0 +1,1930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCP Manifest Generator &middot; jholm.co</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black: #080808;
+      --white: #f0ece4;
+      --dim: rgba(240, 236, 228, 0.38);
+      --dimmer: rgba(240, 236, 228, 0.1);
+      --accent: #5b9cf5;
+      --green: #6ee7a0;
+      --red: #f87171;
+      --yellow: #fbbf24;
+      --mono: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      line-height: 1.6;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity: 0.032; pointer-events: none; z-index: 0;
+    }
+
+    .container { max-width: 980px; margin: 0 auto; padding: 0 2rem; position: relative; z-index: 1; }
+
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1.5rem 3.5rem;
+      background: rgba(8,8,8,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--dimmer);
+    }
+    nav a { color: var(--dim); text-decoration: none; font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; transition: color 0.3s; }
+    nav a:hover { color: var(--white); }
+    .nav-title { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--white); letter-spacing: 0; text-transform: none; }
+
+    .hero {
+      padding: 7rem 0 2rem;
+      text-align: center;
+    }
+    .hero-eyebrow {
+      font-size: 0.62rem; letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 1.2rem;
+    }
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 4.5vw, 3rem);
+      font-weight: 400; line-height: 1.1; letter-spacing: -0.01em;
+      margin-bottom: 1rem;
+    }
+    .hero h1 em { font-style: italic; }
+    .hero p { color: var(--dim); font-size: 0.9rem; max-width: 540px; margin: 0 auto; line-height: 1.7; }
+
+    .rule { height: 1px; background: var(--dimmer); margin: 1.5rem 0; }
+
+    /* ===== Stepper ===== */
+    .stepper {
+      display: flex; align-items: center; justify-content: center;
+      gap: 0; margin: 2.5rem 0 2rem;
+      flex-wrap: wrap;
+    }
+    .step-pill {
+      display: flex; align-items: center; gap: 0.55rem;
+      padding: 0.5rem 1rem;
+      border-radius: 100px;
+      font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--dim);
+      cursor: pointer;
+      transition: all 0.25s;
+      border: 1px solid transparent;
+      background: transparent;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .step-pill .step-num {
+      width: 20px; height: 20px;
+      border: 1px solid var(--dimmer);
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.6rem;
+      transition: all 0.25s;
+    }
+    .step-pill.active {
+      background: rgba(240,236,228,0.04);
+      border-color: var(--dimmer);
+      color: var(--white);
+    }
+    .step-pill.active .step-num {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .step-pill.done { color: var(--dim); }
+    .step-pill.done .step-num {
+      background: var(--white);
+      color: var(--black);
+      border-color: var(--white);
+    }
+    .step-pill:hover:not(.active) { color: var(--white); }
+    .step-divider {
+      width: 1.5rem; height: 1px; background: var(--dimmer); margin: 0 0.2rem;
+    }
+
+    /* ===== Cards ===== */
+    .card {
+      border: 1px solid var(--dimmer);
+      border-radius: 6px;
+      padding: 2rem;
+      margin: 1.5rem 0;
+      background: rgba(240,236,228,0.015);
+    }
+    .card-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 1.5rem;
+      gap: 1rem;
+    }
+    .card h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem; font-weight: 400; margin-bottom: 0.4rem;
+      letter-spacing: -0.01em;
+    }
+    .card-header h2 em { font-style: italic; }
+    .card-subtitle { font-size: 0.8rem; color: var(--dim); }
+    .card-meta { font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--dim); text-align: right; flex-shrink: 0; }
+    .card-meta strong { color: var(--white); font-weight: 400; }
+
+    /* ===== Form Elements ===== */
+    label { display: block; font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); margin-bottom: 0.4rem; }
+    textarea, select, input[type="text"] {
+      width: 100%; padding: 0.7rem 0.9rem;
+      background: rgba(240,236,228,0.04);
+      border: 1px solid var(--dimmer); border-radius: 4px;
+      color: var(--white); font-family: var(--mono); font-size: 0.78rem;
+      resize: vertical;
+    }
+    textarea:focus, select:focus, input[type="text"]:focus { outline: none; border-color: var(--accent); }
+    select { font-family: 'DM Sans', sans-serif; }
+    .field { margin-bottom: 1.2rem; }
+    .row { display: flex; gap: 1rem; }
+    .row > .field { flex: 1; }
+
+    /* ===== Buttons ===== */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.65rem 1.4rem; border: none; border-radius: 4px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.78rem; font-weight: 400;
+      letter-spacing: 0.06em; cursor: pointer; transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--white); color: var(--black); }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-outline { background: transparent; color: var(--dim); border: 1px solid var(--dimmer); }
+    .btn-outline:hover { color: var(--white); border-color: var(--dim); }
+    .btn-sm { padding: 0.45rem 0.9rem; font-size: 0.7rem; }
+    .btn-ghost { background: transparent; color: var(--dim); }
+    .btn-ghost:hover { color: var(--white); }
+    .btn-group { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+    .btn-row {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 2rem; padding-top: 1.5rem;
+      border-top: 1px solid var(--dimmer);
+      gap: 1rem; flex-wrap: wrap;
+    }
+
+    /* ===== Wizard Steps ===== */
+    .wizard-step { display: none; }
+    .wizard-step.active { display: block; animation: fade-in 0.4s ease; }
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== Example loader ===== */
+    .example-row {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+      padding: 0.9rem 1rem;
+      background: rgba(91, 156, 245, 0.04);
+      border: 1px solid rgba(91, 156, 245, 0.15);
+      border-radius: 4px;
+      font-size: 0.78rem;
+      align-items: center;
+    }
+    .example-row .example-label {
+      color: var(--dim); font-size: 0.65rem;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      margin-right: 0.5rem;
+    }
+    .example-btn {
+      padding: 0.3rem 0.7rem;
+      background: rgba(240,236,228,0.04);
+      border: 1px solid var(--dimmer);
+      border-radius: 100px;
+      color: var(--white);
+      font-size: 0.7rem;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.2s;
+    }
+    .example-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ===== Diff View (Step 2) ===== */
+    .diff-row {
+      border: 1px solid var(--dimmer);
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .diff-row.accepted { border-color: rgba(110,231,160,0.3); }
+    .diff-row.rejected { border-color: rgba(248,113,113,0.25); opacity: 0.6; }
+    .diff-header {
+      padding: 0.9rem 1.2rem;
+      background: rgba(240,236,228,0.02);
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 1rem; flex-wrap: wrap;
+      border-bottom: 1px solid var(--dimmer);
+    }
+    .diff-tool-name {
+      font-family: var(--mono); font-size: 0.82rem;
+      color: var(--white); font-weight: 500;
+    }
+    .diff-accuracy {
+      font-size: 0.7rem; color: var(--dim);
+    }
+    .diff-accuracy .acc-delta {
+      color: var(--green); font-weight: 500;
+    }
+    .diff-body {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    }
+    .diff-col {
+      padding: 1rem 1.2rem;
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+    .diff-col.original {
+      background: rgba(248,113,113,0.03);
+      border-right: 1px solid var(--dimmer);
+    }
+    .diff-col.optimized {
+      background: rgba(110,231,160,0.03);
+    }
+    .diff-col-label {
+      font-size: 0.58rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 0.5rem;
+    }
+    .diff-text { color: rgba(240,236,228,0.8); }
+    .diff-actions {
+      padding: 0.7rem 1.2rem;
+      display: flex; gap: 0.5rem; align-items: center;
+      border-top: 1px solid var(--dimmer);
+      background: rgba(0,0,0,0.2);
+    }
+    .diff-actions .status-tag {
+      font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--dim);
+      margin-left: auto;
+    }
+    .diff-actions .status-tag.accepted { color: var(--green); }
+    .diff-actions .status-tag.rejected { color: var(--red); }
+
+    .bulk-banner {
+      padding: 1rem 1.4rem;
+      background: rgba(91, 156, 245, 0.06);
+      border: 1px solid rgba(91, 156, 245, 0.2);
+      border-radius: 6px;
+      margin-bottom: 1.5rem;
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 1rem; flex-wrap: wrap;
+      font-size: 0.85rem;
+    }
+    .bulk-banner-text { color: var(--white); }
+    .bulk-banner-sub { color: var(--dim); font-size: 0.75rem; margin-top: 0.2rem; }
+
+    /* ===== Safety Classifier (Step 3) ===== */
+    .safety-group { margin-bottom: 2rem; }
+    .safety-group-header {
+      display: flex; align-items: center; gap: 0.6rem;
+      margin-bottom: 0.9rem;
+      padding-bottom: 0.6rem;
+      border-bottom: 1px solid var(--dimmer);
+    }
+    .safety-group-title {
+      font-size: 0.68rem; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--white);
+    }
+    .safety-group-count {
+      font-size: 0.65rem; color: var(--dim);
+      letter-spacing: 0.12em;
+    }
+    .safety-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      display: inline-block;
+    }
+    .safety-dot.red { background: var(--red); }
+    .safety-dot.amber { background: var(--yellow); }
+    .safety-dot.green { background: var(--green); }
+    .safety-dot.gray { background: var(--dim); }
+
+    .safety-row {
+      padding: 1rem 1.2rem;
+      border: 1px solid var(--dimmer);
+      border-radius: 4px;
+      margin-bottom: 0.7rem;
+      background: rgba(240,236,228,0.015);
+    }
+    .safety-row-top {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 1rem; margin-bottom: 0.5rem;
+    }
+    .safety-tool-name {
+      font-family: var(--mono); font-size: 0.85rem; color: var(--white);
+      font-weight: 500;
+    }
+    .safety-method {
+      font-size: 0.6rem; letter-spacing: 0.1em;
+      padding: 0.1rem 0.5rem;
+      border-radius: 3px;
+      font-family: var(--mono);
+      margin-right: 0.5rem;
+    }
+    .safety-method.get { background: rgba(110,231,160,0.1); color: var(--green); }
+    .safety-method.post { background: rgba(91,156,245,0.1); color: var(--accent); }
+    .safety-method.put, .safety-method.patch { background: rgba(251,191,36,0.1); color: var(--yellow); }
+    .safety-method.delete { background: rgba(248,113,113,0.1); color: var(--red); }
+
+    .safety-rationale {
+      font-size: 0.78rem;
+      color: var(--dim);
+      margin: 0.4rem 0;
+      line-height: 1.55;
+    }
+    .safety-example {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: rgba(240,236,228,0.55);
+      padding: 0.5rem 0.7rem;
+      background: rgba(0,0,0,0.3);
+      border-left: 2px solid var(--dimmer);
+      border-radius: 0 3px 3px 0;
+      margin-top: 0.5rem;
+    }
+    .safety-example .ex-label {
+      font-size: 0.55rem; letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--dim);
+      font-family: 'DM Sans', sans-serif;
+      margin-bottom: 0.2rem;
+      display: block;
+    }
+    .safety-override {
+      margin-top: 0.7rem;
+      font-size: 0.7rem;
+      color: var(--dim);
+    }
+    .safety-override .override-link {
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    /* ===== Test Harness (Step 4) ===== */
+    .harness-summary {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .harness-stat {
+      padding: 1.1rem 1.2rem;
+      border: 1px solid var(--dimmer);
+      border-radius: 6px;
+      background: rgba(240,236,228,0.015);
+    }
+    .harness-stat-value {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.9rem;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      margin-bottom: 0.3rem;
+    }
+    .harness-stat-value.success { color: var(--green); }
+    .harness-stat-value.warn { color: var(--yellow); }
+    .harness-stat-label {
+      font-size: 0.6rem; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--dim);
+    }
+
+    .heatmap-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      align-items: center;
+      padding: 0.7rem 0;
+      border-bottom: 1px solid var(--dimmer);
+    }
+    .heatmap-row:last-child { border-bottom: none; }
+    .heatmap-name {
+      font-family: var(--mono); font-size: 0.78rem; color: var(--white);
+    }
+    .heatmap-bars {
+      display: flex; gap: 2px;
+    }
+    .heatmap-cell {
+      width: 9px; height: 18px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .heatmap-cell:hover { transform: scaleY(1.15); }
+    .heatmap-cell.pass { background: var(--green); }
+    .heatmap-cell.fail { background: var(--red); }
+    .heatmap-cell.skip { background: var(--dimmer); }
+    .heatmap-rate {
+      font-family: var(--mono); font-size: 0.72rem;
+      color: var(--dim); min-width: 50px; text-align: right;
+    }
+    .heatmap-rate.warn { color: var(--yellow); }
+    .heatmap-rate.fail { color: var(--red); }
+
+    .flagged-tool {
+      margin-top: 1.5rem;
+      padding: 1rem 1.2rem;
+      background: rgba(251,191,36,0.05);
+      border: 1px solid rgba(251,191,36,0.2);
+      border-radius: 4px;
+    }
+    .flagged-tool-title {
+      font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--yellow); margin-bottom: 0.4rem;
+    }
+    .flagged-tool-desc {
+      font-size: 0.82rem; color: var(--white); margin-bottom: 0.4rem;
+    }
+    .flagged-tool-sub {
+      font-size: 0.74rem; color: var(--dim);
+    }
+
+    /* ===== Export Tabs (Step 5) ===== */
+    .tabs { display: flex; border-bottom: 1px solid var(--dimmer); margin-bottom: 1.5rem; }
+    .tab {
+      padding: 0.7rem 1.2rem; cursor: pointer; border: none; background: none;
+      border-bottom: 2px solid transparent; color: var(--dim);
+      font-family: 'DM Sans', sans-serif; font-size: 0.72rem;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .tab:hover { color: var(--white); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .code-viewer {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--dimmer); border-radius: 4px;
+      padding: 1.2rem; overflow-x: auto;
+      font-family: var(--mono); font-size: 0.72rem; line-height: 1.6;
+      white-space: pre; color: rgba(240,236,228,0.7);
+      max-height: 500px; overflow-y: auto;
+    }
+
+    /* ===== Badges ===== */
+    .badge {
+      display: inline-block; padding: 0.15rem 0.55rem;
+      border-radius: 100px; font-size: 0.58rem; font-weight: 500;
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .badge-green { border: 1px solid rgba(110,231,160,0.25); color: var(--green); }
+    .badge-red { border: 1px solid rgba(248,113,113,0.25); color: var(--red); }
+    .badge-yellow { border: 1px solid rgba(251,191,36,0.25); color: var(--yellow); }
+    .badge-blue { border: 1px solid rgba(91,156,245,0.25); color: var(--accent); }
+    .badge-dim { border: 1px solid var(--dimmer); color: var(--dim); }
+
+    /* ===== Misc ===== */
+    .error-msg { color: var(--red); font-size: 0.82rem; padding: 0.8rem; background: rgba(248,113,113,0.08); border-radius: 4px; margin-bottom: 1rem; }
+
+    .how-it-works { counter-reset: step; }
+    .step-info { display: flex; gap: 1rem; margin-bottom: 1.2rem; }
+    .step-info::before {
+      counter-increment: step;
+      content: counter(step);
+      flex-shrink: 0; width: 26px; height: 26px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--dimmer); border-radius: 50%;
+      font-size: 0.62rem; color: var(--dim); margin-top: 0.15rem;
+    }
+    .step-info-content { font-size: 0.82rem; color: var(--dim); line-height: 1.6; }
+    .step-info-content strong { color: var(--white); font-weight: 400; }
+
+    .ship-success {
+      text-align: center;
+      padding: 3rem 1rem;
+    }
+    .ship-success-icon {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5rem;
+      color: var(--green);
+      margin-bottom: 1rem;
+    }
+    .ship-success h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem; font-weight: 400;
+      margin-bottom: 0.5rem;
+    }
+    .ship-success p { color: var(--dim); font-size: 0.85rem; margin-bottom: 2rem; }
+
+    footer {
+      padding: 2.5rem 3.5rem; border-top: 1px solid var(--dimmer);
+      display: flex; justify-content: space-between; align-items: center;
+      position: relative; z-index: 1; margin-top: 4rem;
+    }
+    footer p { font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--dimmer); }
+    footer a { color: var(--dim); text-decoration: none; }
+    footer a:hover { color: var(--white); }
+
+    @media (max-width: 768px) {
+      nav { padding: 1rem 1.5rem; }
+      .container { padding: 0 1.5rem; }
+      .hero { padding: 6rem 0 2rem; }
+      .row { flex-direction: column; gap: 0; }
+      footer { padding: 2rem 1.5rem; flex-direction: column; gap: 0.8rem; }
+      .stepper { gap: 0.2rem; }
+      .step-pill { padding: 0.4rem 0.7rem; font-size: 0.6rem; }
+      .step-pill .step-label { display: none; }
+      .step-divider { width: 0.6rem; }
+      .diff-body { grid-template-columns: 1fr; }
+      .diff-col.original { border-right: none; border-bottom: 1px solid var(--dimmer); }
+      .card { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <span></span>
+    <a href="../#prototyping">Back to portfolio</a>
+  </nav>
+
+  <div class="container">
+    <section class="hero">
+      <p class="hero-eyebrow">Developer Tool &middot; v2 Preview</p>
+      <h1>MCP Manifest<br />Generator.</h1>
+      <p>
+        Turn any API into a production-ready MCP server in minutes.
+        With AI-readability optimization, safety scoping, and a test harness
+        built in &mdash; so you ship integrations Claude can actually use.
+      </p>
+    </section>
+
+    <!-- ===== Stepper ===== -->
+    <div class="stepper" id="stepper">
+      <button class="step-pill" data-step="1" onclick="goToStep(1)">
+        <span class="step-num">1</span>
+        <span class="step-label">Input</span>
+      </button>
+      <span class="step-divider"></span>
+      <button class="step-pill" data-step="2" onclick="goToStep(2)">
+        <span class="step-num">2</span>
+        <span class="step-label">Review</span>
+      </button>
+      <span class="step-divider"></span>
+      <button class="step-pill" data-step="3" onclick="goToStep(3)">
+        <span class="step-num">3</span>
+        <span class="step-label">Safety</span>
+      </button>
+      <span class="step-divider"></span>
+      <button class="step-pill" data-step="4" onclick="goToStep(4)">
+        <span class="step-num">4</span>
+        <span class="step-label">Test</span>
+      </button>
+      <span class="step-divider"></span>
+      <button class="step-pill" data-step="5" onclick="goToStep(5)">
+        <span class="step-num">5</span>
+        <span class="step-label">Ship</span>
+      </button>
+    </div>
+
+    <!-- ===== STEP 1: INPUT ===== -->
+    <div class="wizard-step" id="step-1">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2><em>Step 1.</em> Input</h2>
+            <p class="card-subtitle">Paste an OpenAPI spec or Postman collection, or try a sample API.</p>
+          </div>
+        </div>
+
+        <div class="example-row">
+          <span class="example-label">Try a sample</span>
+          <button class="example-btn" onclick="loadExample('stripe')">Stripe API</button>
+          <button class="example-btn" onclick="loadExample('petstore')">Petstore (Swagger)</button>
+          <button class="example-btn" onclick="loadExample('billing')">Internal billing</button>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Input type</label>
+            <select id="inputType">
+              <option value="openapi">OpenAPI (YAML / JSON)</option>
+              <option value="postman">Postman Collection (JSON)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Manifest name</label>
+            <input type="text" id="manifestName" placeholder="my-api" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>API definition</label>
+          <textarea id="specInput" rows="10" placeholder="Paste your OpenAPI spec or Postman collection here, or pick a sample above..."></textarea>
+        </div>
+
+        <div class="field">
+          <label>Or upload a file</label>
+          <input type="file" id="fileInput" accept=".yaml,.yml,.json" style="font-size:0.78rem; color:var(--dim);" />
+        </div>
+
+        <div id="error" class="error-msg" style="display:none;"></div>
+
+        <div class="btn-row">
+          <span class="card-meta" style="text-align:left;">
+            Step 1 of 5 &middot; <strong>Parse</strong>
+          </span>
+          <button class="btn btn-primary" id="generateBtn" onclick="generate()">Parse &amp; Continue &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== STEP 2: REVIEW (DIFF VIEW) ===== -->
+    <div class="wizard-step" id="step-2">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2><em>Step 2.</em> Review descriptions</h2>
+            <p class="card-subtitle">The optimizer rewrote your tool descriptions for AI-readability. Accept what helps; keep what you had.</p>
+          </div>
+          <div class="card-meta">
+            <strong id="diff-tool-count">0</strong> tools<br/>
+            <span id="diff-avg-lift">+0pp avg lift</span>
+          </div>
+        </div>
+
+        <div class="bulk-banner">
+          <div>
+            <div class="bulk-banner-text"><strong id="bulk-recommend-count">0</strong> tools have recommended rewrites that beat the baseline.</div>
+            <div class="bulk-banner-sub">You can accept all and override individually below.</div>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-outline btn-sm" onclick="rejectAllDiffs()">Keep originals</button>
+            <button class="btn btn-primary btn-sm" onclick="acceptAllDiffs()">Accept all</button>
+          </div>
+        </div>
+
+        <div id="diff-list"></div>
+
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="goToStep(1)">&larr; Back</button>
+          <span class="card-meta" style="text-align:left;">
+            Step 2 of 5 &middot; <strong>Optimize</strong>
+          </span>
+          <button class="btn btn-primary" onclick="goToStep(3)">Continue to Safety &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== STEP 3: SAFETY CLASSIFIER ===== -->
+    <div class="wizard-step" id="step-3">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2><em>Step 3.</em> Safety scoping</h2>
+            <p class="card-subtitle">The classifier flagged destructive operations. These require approval before Claude can run them.</p>
+          </div>
+          <div class="card-meta">
+            <strong id="safety-flag-count">0</strong> require approval<br/>
+            <span id="safety-readonly-count">0 read-only</span>
+          </div>
+        </div>
+
+        <div id="safety-list"></div>
+
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="goToStep(2)">&larr; Back</button>
+          <span class="card-meta" style="text-align:left;">
+            Step 3 of 5 &middot; <strong>Classify</strong>
+          </span>
+          <button class="btn btn-primary" onclick="goToStep(4)">Run test harness &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== STEP 4: TEST HARNESS ===== -->
+    <div class="wizard-step" id="step-4">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2><em>Step 4.</em> Test harness</h2>
+            <p class="card-subtitle">50 simulated prompts per tool, run in a sandbox. Catches malformed responses before they ship.</p>
+          </div>
+          <div class="card-meta">
+            <strong id="harness-status">Ready</strong><br/>
+            <span id="harness-runtime">&mdash;</span>
+          </div>
+        </div>
+
+        <div id="harness-pre">
+          <p style="font-size:0.85rem; color:var(--dim); margin-bottom:1.5rem;">
+            The harness will run 50 simulated prompts against each tool in your manifest, using
+            Claude Haiku 4.5 in a sandboxed environment. Failed calls and malformed responses
+            are surfaced per-tool before the manifest is published.
+          </p>
+          <button class="btn btn-primary" onclick="runHarness()">Run harness</button>
+        </div>
+
+        <div id="harness-results" style="display:none;">
+          <div class="harness-summary" id="harness-summary"></div>
+          <h3 style="font-family:'Playfair Display', serif; font-size:1rem; font-weight:400; margin-bottom:0.8rem;">Per-tool pass rate</h3>
+          <p style="font-size:0.72rem; color:var(--dim); margin-bottom:1rem;">Each cell is one simulated prompt. Hover for details.</p>
+          <div id="heatmap"></div>
+          <div id="flagged-section"></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="goToStep(3)">&larr; Back</button>
+          <span class="card-meta" style="text-align:left;">
+            Step 4 of 5 &middot; <strong>Test</strong>
+          </span>
+          <button class="btn btn-primary" id="harness-continue" onclick="goToStep(5)" disabled>Continue to Export &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== STEP 5: SHIP ===== -->
+    <div class="wizard-step" id="step-5">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2><em>Step 5.</em> Ship</h2>
+            <p class="card-subtitle" id="ship-subtitle">Download your validated manifest, or copy the registry command.</p>
+          </div>
+          <div class="card-meta">
+            <span class="badge badge-green">Signed</span>
+            <span class="badge badge-dim" id="ship-tool-count">0 tools</span>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active" onclick="showExportTab('summary', this)">Summary</button>
+          <button class="tab" onclick="showExportTab('json', this)">manifest.json</button>
+          <button class="tab" onclick="showExportTab('server', this)">server.json</button>
+        </div>
+
+        <div id="tab-summary">
+          <div class="harness-summary" id="ship-summary"></div>
+          <div style="margin-top:1.5rem;">
+            <p style="font-size:0.85rem; color:var(--dim); line-height:1.7;">
+              Your manifest is ready. Commit it to your repo and teammates' Claude Code will
+              auto-install on git pull. Or push to the public registry for community use.
+            </p>
+          </div>
+        </div>
+        <div id="tab-json" style="display:none;">
+          <div class="code-viewer" id="jsonViewer"></div>
+        </div>
+        <div id="tab-server" style="display:none;">
+          <div class="code-viewer" id="serverViewer"></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="goToStep(4)">&larr; Back</button>
+          <div class="btn-group">
+            <button class="btn btn-outline btn-sm" onclick="downloadManifest()">manifest.json</button>
+            <button class="btn btn-outline btn-sm" onclick="downloadServerJson()">server.json</button>
+            <button class="btn btn-primary btn-sm" onclick="shipToRegistry()">Push to registry</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== How it works (always visible at bottom) ===== -->
+    <div class="card" style="margin-top:3rem;">
+      <h2 style="font-size:1.1rem; margin-bottom:1rem;">How it works</h2>
+      <div class="how-it-works">
+        <div class="step-info"><div class="step-info-content"><strong>Parse</strong> &mdash; Extracts every operation from your OpenAPI spec or Postman collection into a normalized tool list.</div></div>
+        <div class="step-info"><div class="step-info-content"><strong>Optimize</strong> &mdash; Rewrites tool descriptions for AI-readability. Selection accuracy climbs from 71% baseline to &ge;92% on optimized manifests.</div></div>
+        <div class="step-info"><div class="step-info-content"><strong>Classify</strong> &mdash; Flags every destructive operation (deletes, writes, charges, sends) with rationale and example invocation. Requires explicit override.</div></div>
+        <div class="step-info"><div class="step-info-content"><strong>Test</strong> &mdash; Runs 50 simulated prompts per tool in a sandboxed harness. Catches malformed responses before they reach production.</div></div>
+        <div class="step-info"><div class="step-info-content"><strong>Ship</strong> &mdash; Export the signed manifest or push to the public registry. Teammates auto-install on git pull.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2026 James Holm</p>
+    <p><a href="../">jholm.co</a></p>
+  </footer>
+
+<script>
+/* =====================================================================
+   MOCK DATA — Stripe API
+   Pre-computed descriptions, rewrites, accuracy deltas, classifications,
+   and harness results so the demo is reliable.
+   ===================================================================== */
+
+const STRIPE_SAMPLE_SPEC = `openapi: 3.0.0
+info:
+  title: Stripe API
+  version: '2024-04-10'
+  description: The Stripe REST API
+servers:
+  - url: https://api.stripe.com
+paths:
+  /v1/charges:
+    get:
+      operationId: listCharges
+      summary: List all charges
+      description: Returns a list of charges you've previously created.
+      parameters:
+        - name: customer
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer }
+    post:
+      operationId: createCharge
+      summary: Create a charge
+      description: Use the Payment Intents API instead of this method. This endpoint is for legacy integrations.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, currency]
+              properties:
+                amount: { type: integer }
+                currency: { type: string }
+                customer: { type: string }
+                description: { type: string }
+  /v1/charges/{id}:
+    get:
+      operationId: retrieveCharge
+      summary: Retrieve a charge
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+  /v1/refunds:
+    post:
+      operationId: createRefund
+      summary: Create a refund
+      description: Refund a charge that has previously been created but not yet refunded.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [charge]
+              properties:
+                charge: { type: string }
+                amount: { type: integer }
+                reason: { type: string }
+  /v1/customers:
+    get:
+      operationId: listCustomers
+      summary: List all customers
+      parameters:
+        - name: email
+          in: query
+          schema: { type: string }
+    post:
+      operationId: createCustomer
+      summary: Create a customer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string }
+                name: { type: string }
+                description: { type: string }
+  /v1/customers/{id}:
+    delete:
+      operationId: deleteCustomer
+      summary: Delete a customer
+      description: Permanently deletes a customer. It cannot be undone.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+  /v1/subscriptions:
+    post:
+      operationId: createSubscription
+      summary: Create a subscription
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customer]
+              properties:
+                customer: { type: string }
+                items: { type: array }
+  /v1/subscriptions/{id}:
+    post:
+      operationId: updateSubscription
+      summary: Update a subscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+    delete:
+      operationId: cancelSubscription
+      summary: Cancel a subscription
+      description: Cancels a customer's subscription immediately.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+  /v1/payouts:
+    get:
+      operationId: listPayouts
+      summary: List all payouts
+    post:
+      operationId: createPayout
+      summary: Create a payout
+      description: Sends funds to a connected bank account.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, currency]
+              properties:
+                amount: { type: integer }
+                currency: { type: string }
+                destination: { type: string }
+  /v1/invoices:
+    get:
+      operationId: listInvoices
+      summary: List all invoices
+    post:
+      operationId: createInvoice
+      summary: Create an invoice
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customer: { type: string }
+  /v1/invoices/{id}/send:
+    post:
+      operationId: sendInvoice
+      summary: Send an invoice
+      description: Emails an invoice to a customer.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+`;
+
+const PETSTORE_SAMPLE_SPEC = `openapi: 3.0.0
+info:
+  title: Petstore
+  version: '1.0.0'
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      summary: List all pets
+    post:
+      operationId: createPet
+      summary: Create a pet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                tag: { type: string }
+  /pets/{id}:
+    get:
+      operationId: getPet
+      summary: Get a pet by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+    delete:
+      operationId: deletePet
+      summary: Delete a pet
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+`;
+
+const BILLING_SAMPLE_SPEC = `openapi: 3.0.0
+info:
+  title: Internal Billing API
+  version: '1.0.0'
+paths:
+  /accounts:
+    get:
+      operationId: listAccounts
+      summary: List accounts
+  /accounts/{id}:
+    delete:
+      operationId: deleteAccount
+      summary: Permanently delete an account and all associated data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+  /charges:
+    post:
+      operationId: chargeAccount
+      summary: Charge an account
+      description: Initiates a charge against the account's primary payment method.
+  /refunds:
+    post:
+      operationId: refundCharge
+      summary: Refund a charge
+`;
+
+/* Pre-computed optimizer rewrites + accuracy deltas per Stripe tool.
+   These are the "AI-readability optimized" descriptions the diff view shows. */
+const STRIPE_OPTIMIZER_DATA = {
+  listCharges: {
+    original: "Returns a list of charges you've previously created.",
+    optimized: "Use to retrieve a paginated list of charges, optionally filtered by customer. Best for questions like 'show me recent charges' or 'list payments for customer X'. Returns charge IDs, amounts, currencies, and statuses. Does not include refund details — use listRefunds for those.",
+    baselineAccuracy: 68,
+    optimizedAccuracy: 94,
+    recommended: true
+  },
+  createCharge: {
+    original: "Use the Payment Intents API instead of this method. This endpoint is for legacy integrations.",
+    optimized: "DEPRECATED: directly charges a payment source. Prefer createPaymentIntent for new integrations, which handles 3D Secure and async confirmation. Only use this for legacy code paths that explicitly require synchronous charges. Required: amount (in cents), currency (ISO 4217).",
+    baselineAccuracy: 41,
+    optimizedAccuracy: 88,
+    recommended: true
+  },
+  retrieveCharge: {
+    original: "Retrieve a charge",
+    optimized: "Fetch a single charge by its ID (format: ch_xxxxx). Returns full charge details including status, payment method, refund history, and dispute state. Use when you have a specific charge ID; for searching by other criteria use listCharges.",
+    baselineAccuracy: 72,
+    optimizedAccuracy: 96,
+    recommended: true
+  },
+  createRefund: {
+    original: "Refund a charge that has previously been created but not yet refunded.",
+    optimized: "Issue a refund against an existing charge. Provide the charge ID (ch_xxxxx) and optionally an amount (in cents, for partial refunds) and reason. Cannot refund a charge that has already been fully refunded. This is a destructive operation.",
+    baselineAccuracy: 78,
+    optimizedAccuracy: 95,
+    recommended: true
+  },
+  listCustomers: {
+    original: "List all customers",
+    optimized: "Retrieve a paginated list of customers, optionally filtered by email. Returns customer IDs (cus_xxxxx), email, name, and creation date. For looking up a specific customer by ID, use retrieveCustomer instead.",
+    baselineAccuracy: 70,
+    optimizedAccuracy: 93,
+    recommended: true
+  },
+  createCustomer: {
+    original: "Create a customer",
+    optimized: "Create a new Stripe customer record. Customers are used to track recurring charges, subscriptions, and saved payment methods. Optional fields: email, name, description. Returns the new customer ID (cus_xxxxx).",
+    baselineAccuracy: 66,
+    optimizedAccuracy: 91,
+    recommended: true
+  },
+  deleteCustomer: {
+    original: "Permanently deletes a customer. It cannot be undone.",
+    optimized: "PERMANENTLY DELETES a customer and detaches all their subscriptions and payment methods. Cannot be undone. Historical charges remain but lose the customer association. Use with extreme caution — for soft-delete behavior, update the customer's metadata instead.",
+    baselineAccuracy: 75,
+    optimizedAccuracy: 92,
+    recommended: true
+  },
+  createSubscription: {
+    original: "Create a subscription",
+    optimized: "Start a new recurring subscription for a customer. Required: customer ID (cus_xxxxx) and items (array of price IDs). Subscription begins billing immediately unless trial_period_days is set.",
+    baselineAccuracy: 64,
+    optimizedAccuracy: 89,
+    recommended: true
+  },
+  updateSubscription: {
+    original: "Update a subscription",
+    optimized: "Modify an existing subscription. Common updates: changing the price (items), pausing collection (pause_collection.behavior), or applying a discount (coupon). Does NOT cancel — use cancelSubscription for that. To resume from pause, pass pause_collection: null.",
+    baselineAccuracy: 58,
+    optimizedAccuracy: 90,
+    recommended: true
+  },
+  cancelSubscription: {
+    original: "Cancels a customer's subscription immediately.",
+    optimized: "Immediately cancels an active subscription. No further invoices will be generated. For end-of-period cancellation, use updateSubscription with cancel_at_period_end=true instead. This is a destructive operation.",
+    baselineAccuracy: 81,
+    optimizedAccuracy: 94,
+    recommended: true
+  },
+  listPayouts: {
+    original: "List all payouts",
+    optimized: "Retrieve a paginated list of payouts (transfers to your bank account). Returns payout IDs, amounts, arrival dates, and status. For questions like 'how much was paid out in March', use this and aggregate client-side; date filtering is supported via the created parameter.",
+    baselineAccuracy: 62,
+    optimizedAccuracy: 88,
+    recommended: true
+  },
+  createPayout: {
+    original: "Sends funds to a connected bank account.",
+    optimized: "Initiate a manual payout to a connected bank account. Required: amount (in cents) and currency. Most accounts use automatic payouts; only use this for manual payout schedules. Funds typically arrive in 1-3 business days. This is a destructive operation.",
+    baselineAccuracy: 70,
+    optimizedAccuracy: 91,
+    recommended: true
+  },
+  listInvoices: {
+    original: "List all invoices",
+    optimized: "Retrieve a paginated list of invoices, optionally filtered by customer or status (draft, open, paid, void, uncollectible). Returns invoice IDs (in_xxxxx), amounts, and statuses.",
+    baselineAccuracy: 71,
+    optimizedAccuracy: 92,
+    recommended: true
+  },
+  createInvoice: {
+    original: "Create an invoice",
+    optimized: "Create a draft invoice for a customer. Invoices start as 'draft' and are not sent until finalized via the finalizeInvoice endpoint or auto-finalized after 1 hour. Use sendInvoice to email it after finalization.",
+    baselineAccuracy: 55,
+    optimizedAccuracy: 87,
+    recommended: true
+  },
+  sendInvoice: {
+    original: "Emails an invoice to a customer.",
+    optimized: "Email a finalized invoice to the customer's email on file. Invoice must be in 'open' status (finalized but unpaid). Triggers Stripe's default invoice email template unless customized. This sends external email — treat as a destructive operation.",
+    baselineAccuracy: 76,
+    optimizedAccuracy: 93,
+    recommended: true
+  }
+};
+
+/* Pre-computed safety classifications per Stripe tool.
+   Categories: requires_approval (red), idempotent_write (amber), idempotent_read (green), unknown (gray) */
+const STRIPE_SAFETY_DATA = {
+  listCharges:      { category: 'read',     rationale: 'Read-only listing. Does not modify state.',                                                 example: 'List recent charges for customer cus_8XYZ.' },
+  createCharge:     { category: 'destructive', rationale: 'Initiates a payment against a payment source. Moves money — cannot be undone without a refund.', example: 'Charge customer cus_8XYZ $50.00 for order #1234.' },
+  retrieveCharge:   { category: 'read',     rationale: 'Read-only fetch by ID. Does not modify state.',                                              example: 'Get the status of charge ch_3OqA8B2eZvKYlo2C.' },
+  createRefund:     { category: 'destructive', rationale: 'Reverses a charge. Moves money back to the customer — cannot be undone.',                example: 'Refund $50.00 from charge ch_3OqA8B2eZvKYlo2C.' },
+  listCustomers:    { category: 'read',     rationale: 'Read-only listing. Does not modify state.',                                                 example: 'Find customers with email matching @acme.com.' },
+  createCustomer:   { category: 'write',    rationale: 'Creates a new record. Reversible via deleteCustomer.',                                       example: 'Create a customer for jane@acme.com.' },
+  deleteCustomer:   { category: 'destructive', rationale: 'Permanently removes a customer and detaches their subscriptions. Cannot be undone.',     example: 'Delete customer cus_8XYZ.' },
+  createSubscription:{ category: 'destructive', rationale: 'Begins recurring billing. Charges the customer on the schedule.',                       example: 'Subscribe customer cus_8XYZ to the Pro plan.' },
+  updateSubscription:{ category: 'write',   rationale: 'Modifies billing terms but does not delete data. Reversible.',                              example: 'Pause subscription sub_1NqA8B for vacation collection.' },
+  cancelSubscription:{ category: 'destructive', rationale: 'Stops future billing immediately. End-of-period cancellation requires updateSubscription instead.', example: 'Cancel subscription sub_1NqA8B.' },
+  listPayouts:      { category: 'read',     rationale: 'Read-only listing.',                                                                         example: 'List payouts from March 2026.' },
+  createPayout:     { category: 'destructive', rationale: 'Moves funds to an external bank account. Cannot be undone once initiated.',              example: 'Pay out $10,000 to the connected account.' },
+  listInvoices:     { category: 'read',     rationale: 'Read-only listing.',                                                                         example: 'List all open invoices for customer cus_8XYZ.' },
+  createInvoice:    { category: 'write',    rationale: 'Creates a draft invoice. No charge until finalized and sent.',                              example: 'Draft an invoice for customer cus_8XYZ.' },
+  sendInvoice:      { category: 'destructive', rationale: 'Sends external email to the customer. Email cannot be unsent.',                          example: 'Send invoice in_3OqA8B to the customer.' }
+};
+
+/* Pre-computed harness results per Stripe tool.
+   Each tool gets an array of 50 results (pass/fail), plus a flag note for any tool below 80%. */
+function generateHarnessResults() {
+  const results = {};
+  const passRates = {
+    listCharges: 0.98, createCharge: 0.76, retrieveCharge: 1.00, createRefund: 0.94,
+    listCustomers: 0.98, createCustomer: 0.96, deleteCustomer: 0.92,
+    createSubscription: 0.88, updateSubscription: 0.74, cancelSubscription: 0.96,
+    listPayouts: 0.94, createPayout: 0.90,
+    listInvoices: 0.98, createInvoice: 0.82, sendInvoice: 0.92
+  };
+  for (const [name, rate] of Object.entries(passRates)) {
+    const arr = [];
+    for (let i = 0; i < 50; i++) arr.push(Math.random() < rate ? 'pass' : 'fail');
+    results[name] = { rate: rate, results: arr };
+  }
+  return results;
+}
+
+/* =====================================================================
+   PARSERS (preserved from v1)
+   ===================================================================== */
+const DESTRUCTIVE_VERBS = ['delete','remove','send','transfer','charge','publish','cancel','modify','update','revoke'];
+
+function classifyTool(name, description, method) {
+  const words = name.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
+  const haystack = words + ' ' + (description || '').toLowerCase();
+  const matched = [];
+  for (const verb of DESTRUCTIVE_VERBS) {
+    const re = new RegExp('\\b' + verb + '\\b');
+    if (re.test(haystack)) matched.push(verb);
+  }
+  // HTTP method is also a strong signal
+  if (method && ['delete', 'post', 'put', 'patch'].includes(method.toLowerCase())) {
+    if (!matched.length && method.toLowerCase() === 'delete') matched.push('http-delete');
+  }
+  return matched;
+}
+
+function parseOpenAPI(spec) {
+  const tools = [];
+  const paths = spec.paths || {};
+  const methods = ['get','post','put','patch','delete','head','options','trace'];
+
+  for (const [path, pathItem] of Object.entries(paths)) {
+    if (!pathItem) continue;
+    for (const method of methods) {
+      const op = pathItem[method];
+      if (!op) continue;
+
+      const name = op.operationId || (method + '_' + path.replace(/[^a-zA-Z0-9]/g, '_'));
+      const parts = [op.summary, op.description].filter(Boolean);
+      let description;
+      if (parts.length === 2) {
+        const s = parts[0].replace(/\.+$/, '');
+        description = parts[1].replace(/\.+$/, '').startsWith(s) ? parts[1] : s + '. ' + parts[1];
+      } else {
+        description = parts[0] || (method.toUpperCase() + ' ' + path);
+      }
+
+      const properties = {};
+      const required = [];
+
+      const allParams = [...(pathItem.parameters || []), ...(op.parameters || [])];
+      for (const p of allParams) {
+        const param = p.$ref ? resolveRef(spec, p.$ref) : p;
+        if (!param || !param.name) continue;
+        const s = param.schema || {};
+        properties[param.name] = { type: mapType(s.type), ...(param.description ? {description: param.description} : {}) };
+        if (param.required) required.push(param.name);
+      }
+
+      const rb = op.requestBody;
+      if (rb) {
+        const body = rb.$ref ? resolveRef(spec, rb.$ref) : rb;
+        const content = body && body.content;
+        const mt = content && (content['application/json'] || content['application/x-www-form-urlencoded'] || Object.values(content)[0]);
+        if (mt && mt.schema) {
+          const schema = mt.schema.$ref ? resolveRef(spec, mt.schema.$ref) : mt.schema;
+          if (schema && schema.type === 'object' && schema.properties) {
+            const reqFields = new Set(schema.required || []);
+            for (const [pn, ps] of Object.entries(schema.properties)) {
+              const prop = ps.$ref ? resolveRef(spec, ps.$ref) : ps;
+              properties[pn] = { type: mapType(prop.type), ...(prop.description ? {description: prop.description} : {}) };
+              if (reqFields.has(pn)) required.push(pn);
+            }
+          }
+        }
+      }
+
+      const inputSchema = { type: 'object', properties };
+      if (required.length) inputSchema.required = required;
+
+      tools.push({ name, description, inputSchema, _method: method, _path: path });
+    }
+  }
+  if (!tools.length) throw new Error('No operations found in the OpenAPI spec.');
+  return tools;
+}
+
+function resolveRef(spec, ref) {
+  if (!ref || !ref.startsWith('#/')) return null;
+  const parts = ref.slice(2).split('/');
+  let obj = spec;
+  for (const p of parts) { obj = obj && obj[p]; }
+  return obj || null;
+}
+
+function mapType(t) {
+  if (t === 'integer' || t === 'number') return 'number';
+  if (t === 'boolean') return 'boolean';
+  if (t === 'array') return 'array';
+  if (t === 'object') return 'object';
+  return 'string';
+}
+
+function parsePostman(collection) {
+  const tools = [];
+  flattenItems(collection.item || [], tools);
+  if (!tools.length) throw new Error('No requests found in the Postman collection.');
+  return tools;
+}
+
+function flattenItems(items, tools) {
+  for (const item of items) {
+    if (item.item) { flattenItems(item.item, tools); continue; }
+    if (!item.request) continue;
+    const req = item.request;
+    const method = (req.method || 'GET').toLowerCase();
+    const name = toCamelCase(item.name || 'unnamed');
+    const description = item.name ? (item.name + (req.description ? '. ' + req.description : '')) : (req.description || method.toUpperCase() + ' request');
+
+    const properties = {};
+    const required = [];
+    const url = typeof req.url === 'object' ? req.url : {};
+
+    if (url.variable) for (const v of url.variable) {
+      if (!v.key) continue;
+      properties[v.key] = { type: 'string', ...(v.description ? {description: v.description} : {}) };
+      required.push(v.key);
+    }
+    if (url.query) for (const q of url.query) {
+      if (!q.key || q.disabled) continue;
+      properties[q.key] = { type: 'string', ...(q.description ? {description: q.description} : {}) };
+    }
+    if (req.body) {
+      const bd = req.body;
+      if (bd.mode === 'urlencoded' && bd.urlencoded) for (const f of bd.urlencoded) {
+        if (!f.key) continue;
+        properties[f.key] = { type: 'string', ...(f.description ? {description: f.description} : {}) };
+      }
+      if (bd.mode === 'raw' && bd.raw) try {
+        const obj = JSON.parse(bd.raw);
+        for (const [k, v] of Object.entries(obj)) properties[k] = { type: typeof v === 'number' ? 'number' : typeof v === 'boolean' ? 'boolean' : 'string' };
+      } catch(e) {}
+    }
+
+    const inputSchema = { type: 'object', properties };
+    if (required.length) inputSchema.required = required;
+    tools.push({ name, description, inputSchema, _method: method, _path: '' });
+  }
+}
+
+function toCamelCase(s) {
+  return s.replace(/[^a-zA-Z0-9\s]/g, '').trim().split(/\s+/).map(function(w, i) {
+    return i === 0 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+  }).join('') || 'request';
+}
+
+/* =====================================================================
+   STATE & ROUTING
+   ===================================================================== */
+const state = {
+  currentStep: 1,
+  manifest: null,        // parsed manifest
+  diffs: {},             // toolName -> { accepted: bool }  (default accepted=true)
+  safety: {},            // toolName -> { category, override }
+  harnessResults: null,  // null until run
+  isStripeDemo: false    // true when user loaded the Stripe sample (enables rich mock data)
+};
+
+function goToStep(n) {
+  // Gate: can't skip ahead past parsing
+  if (n > 1 && !state.manifest) {
+    showError('Please parse an API spec first.');
+    return;
+  }
+  state.currentStep = n;
+  window.location.hash = 'step-' + n;
+  document.querySelectorAll('.wizard-step').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  document.getElementById('step-' + n).classList.add('active');
+  updateStepper();
+  // Render any step that needs fresh data
+  if (n === 2) renderDiffView();
+  if (n === 3) renderSafetyView();
+  if (n === 5) renderShipView();
+  // Scroll to top of wizard
+  document.getElementById('stepper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function updateStepper() {
+  document.querySelectorAll('.step-pill').forEach(function(pill) {
+    const stepNum = parseInt(pill.dataset.step);
+    pill.classList.remove('active', 'done');
+    if (stepNum === state.currentStep) pill.classList.add('active');
+    else if (stepNum < state.currentStep) pill.classList.add('done');
+  });
+}
+
+// Restore step from URL hash on load
+window.addEventListener('hashchange', function() {
+  const m = window.location.hash.match(/step-(\d)/);
+  if (m) {
+    const n = parseInt(m[1]);
+    if (n === 1 || state.manifest) goToStep(n);
+  }
+});
+
+/* =====================================================================
+   EXAMPLE LOADERS
+   ===================================================================== */
+function loadExample(which) {
+  if (which === 'stripe') {
+    document.getElementById('specInput').value = STRIPE_SAMPLE_SPEC;
+    document.getElementById('manifestName').value = 'stripe';
+    document.getElementById('inputType').value = 'openapi';
+    state.isStripeDemo = true;
+  } else if (which === 'petstore') {
+    document.getElementById('specInput').value = PETSTORE_SAMPLE_SPEC;
+    document.getElementById('manifestName').value = 'petstore';
+    document.getElementById('inputType').value = 'openapi';
+    state.isStripeDemo = false;
+  } else if (which === 'billing') {
+    document.getElementById('specInput').value = BILLING_SAMPLE_SPEC;
+    document.getElementById('manifestName').value = 'billing';
+    document.getElementById('inputType').value = 'openapi';
+    state.isStripeDemo = false;
+  }
+}
+
+/* =====================================================================
+   STEP 1 — PARSE
+   ===================================================================== */
+function generate() {
+  const input = document.getElementById('specInput').value.trim();
+  const type = document.getElementById('inputType').value;
+  const name = document.getElementById('manifestName').value.trim() || 'api';
+  hideError();
+
+  if (!input) { showError('Please paste an API definition or pick a sample above.'); return; }
+
+  try {
+    let tools;
+    if (type === 'postman') {
+      const collection = JSON.parse(input);
+      tools = parsePostman(collection);
+    } else {
+      let spec;
+      try { spec = JSON.parse(input); }
+      catch(e) { spec = jsyaml.load(input); }
+      tools = parseOpenAPI(spec);
+    }
+
+    // Initialize diff state (all accepted by default for tools with optimizer data; for others, mark as no-rewrite)
+    state.diffs = {};
+    state.safety = {};
+    for (const tool of tools) {
+      // Diffs
+      const hasOptimizerData = state.isStripeDemo && STRIPE_OPTIMIZER_DATA[tool.name];
+      if (hasOptimizerData) {
+        state.diffs[tool.name] = { accepted: true, optimizer: STRIPE_OPTIMIZER_DATA[tool.name] };
+      } else {
+        // Generic mock: synthesize a plausible "optimized" version
+        state.diffs[tool.name] = {
+          accepted: true,
+          optimizer: synthesizeOptimizerEntry(tool)
+        };
+      }
+      // Safety
+      const hasSafetyData = state.isStripeDemo && STRIPE_SAFETY_DATA[tool.name];
+      if (hasSafetyData) {
+        state.safety[tool.name] = { ...STRIPE_SAFETY_DATA[tool.name], override: false };
+      } else {
+        const matched = classifyTool(tool.name, tool.description, tool._method);
+        const category = matched.length > 0 ? 'destructive' : (['post','put','patch'].includes(tool._method) ? 'write' : 'read');
+        state.safety[tool.name] = {
+          category: category,
+          rationale: matched.length
+            ? 'Matched destructive verb pattern: ' + matched.join(', ') + '. HTTP method: ' + (tool._method || 'unknown').toUpperCase() + '.'
+            : 'No destructive patterns detected. HTTP method: ' + (tool._method || 'unknown').toUpperCase() + '.',
+          example: 'Sample invocation for ' + tool.name + '.',
+          override: false
+        };
+      }
+    }
+
+    state.manifest = { name: name, version: '1.0.0', description: 'MCP manifest for ' + name, tools: tools };
+    state.harnessResults = null;
+    goToStep(2);
+  } catch (e) {
+    showError(e.message);
+  }
+}
+
+function synthesizeOptimizerEntry(tool) {
+  // For non-Stripe APIs, produce a reasonable mock rewrite so the diff view still works.
+  const baseline = 60 + Math.floor(Math.random() * 18);
+  const optimized = Math.min(96, baseline + 15 + Math.floor(Math.random() * 12));
+  const original = tool.description || ('Performs ' + tool.name);
+  const optimizedDesc = original + ' Use when the user wants to ' + tool.name.replace(/([A-Z])/g, ' $1').toLowerCase().trim() + '. Required parameters are documented in the input schema.';
+  return {
+    original: original,
+    optimized: optimizedDesc,
+    baselineAccuracy: baseline,
+    optimizedAccuracy: optimized,
+    recommended: true
+  };
+}
+
+function showError(msg) {
+  const el = document.getElementById('error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideError() {
+  document.getElementById('error').style.display = 'none';
+}
+
+/* =====================================================================
+   STEP 2 — DIFF VIEW
+   ===================================================================== */
+function renderDiffView() {
+  if (!state.manifest) return;
+  const list = document.getElementById('diff-list');
+  const tools = state.manifest.tools;
+
+  let totalLift = 0;
+  let recommendedCount = 0;
+  for (const tool of tools) {
+    const d = state.diffs[tool.name];
+    if (d && d.optimizer && d.optimizer.recommended) {
+      totalLift += d.optimizer.optimizedAccuracy - d.optimizer.baselineAccuracy;
+      recommendedCount++;
+    }
+  }
+  const avgLift = recommendedCount ? Math.round(totalLift / recommendedCount) : 0;
+  document.getElementById('diff-tool-count').textContent = tools.length;
+  document.getElementById('diff-avg-lift').textContent = '+' + avgLift + 'pp avg lift';
+  document.getElementById('bulk-recommend-count').textContent = recommendedCount;
+
+  let html = '';
+  for (const tool of tools) {
+    const d = state.diffs[tool.name];
+    if (!d || !d.optimizer) continue;
+    const opt = d.optimizer;
+    const stateClass = d.accepted ? 'accepted' : 'rejected';
+    const statusText = d.accepted ? 'Accepted' : 'Original kept';
+    const statusCls = d.accepted ? 'accepted' : 'rejected';
+
+    html += '<div class="diff-row ' + stateClass + '" id="diff-' + escAttr(tool.name) + '">';
+    html += '<div class="diff-header">';
+    html += '<div class="diff-tool-name">' + esc(tool.name) + '</div>';
+    html += '<div class="diff-accuracy">Selection accuracy: ' + opt.baselineAccuracy + '% &rarr; <span class="acc-delta">' + opt.optimizedAccuracy + '%</span> on 25 held-out prompts</div>';
+    html += '</div>';
+    html += '<div class="diff-body">';
+    html += '<div class="diff-col original"><div class="diff-col-label">Original</div><div class="diff-text">' + esc(opt.original) + '</div></div>';
+    html += '<div class="diff-col optimized"><div class="diff-col-label">Optimized</div><div class="diff-text">' + esc(opt.optimized) + '</div></div>';
+    html += '</div>';
+    html += '<div class="diff-actions">';
+    html += '<button class="btn btn-outline btn-sm" onclick="toggleDiff(\'' + escAttr(tool.name) + '\', true)">Accept</button>';
+    html += '<button class="btn btn-outline btn-sm" onclick="toggleDiff(\'' + escAttr(tool.name) + '\', false)">Keep original</button>';
+    html += '<span class="status-tag ' + statusCls + '">' + statusText + '</span>';
+    html += '</div>';
+    html += '</div>';
+  }
+  list.innerHTML = html;
+}
+
+function toggleDiff(toolName, accept) {
+  if (!state.diffs[toolName]) return;
+  state.diffs[toolName].accepted = accept;
+  renderDiffView();
+}
+
+function acceptAllDiffs() {
+  for (const k of Object.keys(state.diffs)) state.diffs[k].accepted = true;
+  renderDiffView();
+}
+function rejectAllDiffs() {
+  for (const k of Object.keys(state.diffs)) state.diffs[k].accepted = false;
+  renderDiffView();
+}
+
+/* =====================================================================
+   STEP 3 — SAFETY CLASSIFIER
+   ===================================================================== */
+function renderSafetyView() {
+  if (!state.manifest) return;
+  const tools = state.manifest.tools;
+
+  // Group by category
+  const groups = { destructive: [], write: [], read: [], unknown: [] };
+  for (const tool of tools) {
+    const s = state.safety[tool.name];
+    if (!s) groups.unknown.push(tool);
+    else groups[s.category].push(tool);
+  }
+
+  document.getElementById('safety-flag-count').textContent = groups.destructive.length;
+  document.getElementById('safety-readonly-count').textContent = groups.read.length + ' read-only';
+
+  let html = '';
+  html += renderSafetyGroup('Requires approval', groups.destructive, 'red', 'These move money, send communications, or destroy data. Claude must request explicit approval before calling.');
+  html += renderSafetyGroup('Idempotent write', groups.write, 'amber', 'These modify state but are reversible. Claude can call autonomously; consider override if your use case is sensitive.');
+  html += renderSafetyGroup('Read-only', groups.read, 'green', 'These do not modify state. Claude can call freely.');
+  if (groups.unknown.length) {
+    html += renderSafetyGroup('Unclassified', groups.unknown, 'gray', 'The classifier was not confident. Review manually.');
+  }
+  document.getElementById('safety-list').innerHTML = html;
+}
+
+function renderSafetyGroup(title, tools, dotColor, description) {
+  if (!tools.length) return '';
+  let html = '<div class="safety-group">';
+  html += '<div class="safety-group-header">';
+  html += '<span class="safety-dot ' + dotColor + '"></span>';
+  html += '<span class="safety-group-title">' + esc(title) + '</span>';
+  html += '<span class="safety-group-count">&middot; ' + tools.length + ' tool' + (tools.length !== 1 ? 's' : '') + '</span>';
+  html += '</div>';
+  html += '<p style="font-size:0.74rem; color:var(--dim); margin-bottom:0.9rem; line-height:1.55;">' + esc(description) + '</p>';
+  for (const tool of tools) {
+    const s = state.safety[tool.name];
+    const method = (tool._method || 'get').toLowerCase();
+    html += '<div class="safety-row">';
+    html += '<div class="safety-row-top">';
+    html += '<div>';
+    html += '<span class="safety-method ' + method + '">' + method.toUpperCase() + '</span>';
+    html += '<span class="safety-tool-name">' + esc(tool.name) + '</span>';
+    html += '</div>';
+    html += '</div>';
+    if (s && s.rationale) {
+      html += '<div class="safety-rationale">' + esc(s.rationale) + '</div>';
+    }
+    if (s && s.example) {
+      html += '<div class="safety-example"><span class="ex-label">Example invocation</span>' + esc(s.example) + '</div>';
+    }
+    if (s && s.category === 'destructive') {
+      html += '<div class="safety-override">';
+      if (s.override) {
+        html += '<span style="color:var(--yellow);">Override active &mdash; Claude can call without approval.</span> ';
+        html += '<span class="override-link" onclick="toggleSafetyOverride(\'' + escAttr(tool.name) + '\')">Re-enable approval</span>';
+      } else {
+        html += 'Default: approval required. ';
+        html += '<span class="override-link" onclick="toggleSafetyOverride(\'' + escAttr(tool.name) + '\')">Allow without approval</span>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function toggleSafetyOverride(toolName) {
+  if (!state.safety[toolName]) return;
+  if (!state.safety[toolName].override) {
+    const ok = confirm('Allow Claude to call ' + toolName + ' autonomously, without an approval step? Type carefully — this disables the default safety scope.');
+    if (!ok) return;
+  }
+  state.safety[toolName].override = !state.safety[toolName].override;
+  renderSafetyView();
+}
+
+/* =====================================================================
+   STEP 4 — TEST HARNESS
+   ===================================================================== */
+function runHarness() {
+  if (!state.manifest) return;
+  document.getElementById('harness-pre').style.display = 'none';
+  document.getElementById('harness-results').style.display = 'block';
+  document.getElementById('harness-status').textContent = 'Running...';
+
+  const startTime = Date.now();
+
+  // Use Stripe pre-computed results if available; otherwise synthesize
+  let results;
+  if (state.isStripeDemo) {
+    results = generateHarnessResults();
+    // Filter to tools that actually exist in the parsed manifest
+    const filtered = {};
+    for (const tool of state.manifest.tools) {
+      if (results[tool.name]) filtered[tool.name] = results[tool.name];
+      else filtered[tool.name] = synthesizeHarnessForTool(tool);
+    }
+    results = filtered;
+  } else {
+    results = {};
+    for (const tool of state.manifest.tools) {
+      results[tool.name] = synthesizeHarnessForTool(tool);
+    }
+  }
+
+  // Simulate the staggered "running" feel before showing results
+  document.getElementById('heatmap').innerHTML = '';
+  document.getElementById('flagged-section').innerHTML = '';
+
+  setTimeout(function() {
+    state.harnessResults = results;
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    document.getElementById('harness-runtime').textContent = elapsed + 's';
+    document.getElementById('harness-status').textContent = 'Complete';
+    renderHarnessResults();
+    document.getElementById('harness-continue').disabled = false;
+  }, 1800);
+}
+
+function synthesizeHarnessForTool(tool) {
+  const rate = 0.75 + Math.random() * 0.23;
+  const arr = [];
+  for (let i = 0; i < 50; i++) arr.push(Math.random() < rate ? 'pass' : 'fail');
+  return { rate: rate, results: arr };
+}
+
+function renderHarnessResults() {
+  const results = state.harnessResults;
+  if (!results) return;
+  const toolNames = Object.keys(results);
+
+  // Summary stats
+  let totalPass = 0, totalRun = 0, toolsAbove80 = 0, toolsBelow80 = 0;
+  for (const name of toolNames) {
+    const r = results[name];
+    const passes = r.results.filter(function(x) { return x === 'pass'; }).length;
+    totalPass += passes;
+    totalRun += r.results.length;
+    if (passes / r.results.length >= 0.8) toolsAbove80++;
+    else toolsBelow80++;
+  }
+  const overall = totalRun ? Math.round(totalPass / totalRun * 100) : 0;
+  const overallCls = overall >= 90 ? 'success' : (overall >= 80 ? '' : 'warn');
+
+  document.getElementById('harness-summary').innerHTML =
+    '<div class="harness-stat">' +
+      '<div class="harness-stat-value ' + overallCls + '">' + overall + '%</div>' +
+      '<div class="harness-stat-label">Overall pass rate</div>' +
+    '</div>' +
+    '<div class="harness-stat">' +
+      '<div class="harness-stat-value">' + totalRun + '</div>' +
+      '<div class="harness-stat-label">Total prompts run</div>' +
+    '</div>' +
+    '<div class="harness-stat">' +
+      '<div class="harness-stat-value success">' + toolsAbove80 + '</div>' +
+      '<div class="harness-stat-label">Tools &ge;80% pass</div>' +
+    '</div>' +
+    '<div class="harness-stat">' +
+      '<div class="harness-stat-value ' + (toolsBelow80 ? 'warn' : '') + '">' + toolsBelow80 + '</div>' +
+      '<div class="harness-stat-label">Tools flagged</div>' +
+    '</div>';
+
+  // Heatmap
+  let heat = '';
+  for (const name of toolNames) {
+    const r = results[name];
+    const passes = r.results.filter(function(x) { return x === 'pass'; }).length;
+    const rate = Math.round(passes / r.results.length * 100);
+    const rateCls = rate >= 90 ? '' : (rate >= 80 ? 'warn' : 'fail');
+    heat += '<div class="heatmap-row">';
+    heat += '<div>';
+    heat += '<div class="heatmap-name">' + esc(name) + '</div>';
+    heat += '<div class="heatmap-bars">';
+    for (const res of r.results) {
+      heat += '<div class="heatmap-cell ' + res + '" title="' + res + '"></div>';
+    }
+    heat += '</div></div>';
+    heat += '<div class="heatmap-rate ' + rateCls + '">' + rate + '%</div>';
+    heat += '</div>';
+  }
+  document.getElementById('heatmap').innerHTML = heat;
+
+  // Flagged section
+  let flagged = '';
+  for (const name of toolNames) {
+    const r = results[name];
+    const passes = r.results.filter(function(x) { return x === 'pass'; }).length;
+    const rate = passes / r.results.length;
+    if (rate < 0.8) {
+      flagged += '<div class="flagged-tool">';
+      flagged += '<div class="flagged-tool-title">&#9888; Flagged for re-review</div>';
+      flagged += '<div class="flagged-tool-desc"><code style="font-family:var(--mono);">' + esc(name) + '</code> &mdash; pass rate ' + Math.round(rate * 100) + '%</div>';
+      flagged += '<div class="flagged-tool-sub">The most common failure was ambiguous parameter selection. Consider tightening the description in Step 2.</div>';
+      flagged += '</div>';
+    }
+  }
+  document.getElementById('flagged-section').innerHTML = flagged;
+}
+
+/* =====================================================================
+   STEP 5 — SHIP
+   ===================================================================== */
+function renderShipView() {
+  if (!state.manifest) return;
+  const cleanManifest = buildFinalManifest();
+  document.getElementById('ship-tool-count').textContent = cleanManifest.tools.length + ' tools';
+
+  // Summary stats card
+  const acceptedRewrites = Object.values(state.diffs).filter(function(d) { return d.accepted; }).length;
+  const flaggedCount = Object.values(state.safety).filter(function(s) { return s.category === 'destructive' && !s.override; }).length;
+  let passRate = '—';
+  if (state.harnessResults) {
+    let p = 0, t = 0;
+    for (const r of Object.values(state.harnessResults)) {
+      p += r.results.filter(function(x) { return x === 'pass'; }).length;
+      t += r.results.length;
+    }
+    passRate = t ? Math.round(p / t * 100) + '%' : '—';
+  }
+  document.getElementById('ship-summary').innerHTML =
+    '<div class="harness-stat">' +
+      '<div class="harness-stat-value">' + cleanManifest.tools.length + '</div>' +
+      '<div class="harness-stat-label">Tools shipped</div>' +
+    '</div>' +
+    '<div class="harness-stat">' +
+      '<div class="harness-stat-value">' + acceptedRewrites + '</div>' +
+      '<div class="harness-stat-label">Optimizer rewrites</div>' +
+    '</div>' +
+    '<div class="harness-stat">' +
+      '<div class="harness-stat-value ' + (flaggedCount > 0 ? 'warn' : '') + '">' + flaggedCount + '</div>' +
+      '<div class="harness-stat-label">Require approval</div>' +
+    '</div>' +
+    '<div class="harness-stat">' +
+      '<div class="harness-stat-value success">' + passRate + '</div>' +
+      '<div class="harness-stat-label">Harness pass rate</div>' +
+    '</div>';
+
+  // JSON viewers
+  document.getElementById('jsonViewer').textContent = JSON.stringify(cleanManifest, null, 2);
+  const serverJson = {
+    $schema: 'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json',
+    name: cleanManifest.name,
+    version: cleanManifest.version,
+    description: cleanManifest.description,
+    tools: cleanManifest.tools
+  };
+  document.getElementById('serverViewer').textContent = JSON.stringify(serverJson, null, 2);
+}
+
+function buildFinalManifest() {
+  // Construct the final manifest by applying diff acceptances and safety classifications
+  return {
+    name: state.manifest.name,
+    version: state.manifest.version,
+    description: state.manifest.description,
+    tools: state.manifest.tools.map(function(t) {
+      const d = state.diffs[t.name];
+      const s = state.safety[t.name];
+      const finalDescription = (d && d.accepted && d.optimizer)
+        ? d.optimizer.optimized
+        : t.description;
+      const obj = {
+        name: t.name,
+        description: finalDescription,
+        inputSchema: t.inputSchema
+      };
+      if (s) {
+        const requiresApproval = s.category === 'destructive' && !s.override;
+        obj.annotations = {
+          requiresApproval: requiresApproval,
+          destructiveHint: s.category === 'destructive',
+          readOnlyHint: s.category === 'read'
+        };
+      }
+      return obj;
+    })
+  };
+}
+
+function showExportTab(id, btn) {
+  ['summary','json','server'].forEach(function(t) {
+    document.getElementById('tab-' + t).style.display = t === id ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  btn.classList.add('active');
+}
+
+function downloadManifest() {
+  if (!state.manifest) return;
+  downloadJSON(buildFinalManifest(), state.manifest.name + '.manifest.json');
+}
+
+function downloadServerJson() {
+  if (!state.manifest) return;
+  const clean = buildFinalManifest();
+  const serverJson = {
+    $schema: 'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json',
+    name: clean.name, version: clean.version, description: clean.description, tools: clean.tools
+  };
+  downloadJSON(serverJson, 'server.json');
+}
+
+function downloadJSON(obj, filename) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function shipToRegistry() {
+  // Mock: just shows a success state
+  const subtitle = document.getElementById('ship-subtitle');
+  subtitle.innerHTML = '<span style="color:var(--green);">&#10003; Pushed to the public registry &middot; available at registry.mcp.io/' + esc(state.manifest.name) + '</span>';
+}
+
+/* =====================================================================
+   UTIL
+   ===================================================================== */
+function esc(s) { const d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; }
+function escAttr(s) { return String(s).replace(/'/g, '\\\'').replace(/"/g, '&quot;'); }
+
+// File upload handler
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    document.getElementById('specInput').value = ev.target.result;
+    if (file.name.includes('postman')) document.getElementById('inputType').value = 'postman';
+    if (!document.getElementById('manifestName').value) {
+      document.getElementById('manifestName').value = file.name.replace(/\.(openapi|swagger)\.(yaml|yml|json)$/i, '').replace(/\.(yaml|yml|json)$/i, '');
+    }
+    state.isStripeDemo = false;
+  };
+  reader.readAsText(file);
+});
+
+// Initial render
+goToStep(1);
+</script>
+</body>
+</html>
