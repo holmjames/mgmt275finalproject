@@ -2,7 +2,7 @@ MCP Manifest Generator
 Turn any API into a production-ready MCP server in minutes with AI-readability scoring, safety scoping, and a test harness built in.
 🔗 Live demo: jholm.co/mcp/#step-1
 📄 PR-FAQ: (https://ucla-my.sharepoint.com/:w:/g/personal/omarmadkour_ucla_edu/IQCWt5gOsyi2TrZUOh5L8MLzAaYh-66YfIf_0oppBEp2DDw?e=8lZx4g)
-🎥 2-min walkthrough: [Loom link]
+🎥 2-min walkthrough: (https://www.loom.com/share/600b73eb8d7d42c78fb1468fda6dbc9f)
 
 Screenshot: <img width="1305" height="1498" alt="Screenshot 2026-05-16 at 9 46 11 PM" src="https://github.com/user-attachments/assets/2e35f0e8-49a9-4ae7-ae58-c2b47c611b90" />
 
@@ -37,6 +37,27 @@ This is a class-project prototype with deliberate scope boundaries. The optimize
 Source of Truth
 The product's canonical spec lives in SOURCE_OF_TRUTH.md. If the code and the spec disagree, the spec wins. Any contributor (human or AI agent) should read it before touching code.
 License
-MIT — see LICENSE.
+
+MIT License
+
+Copyright (c) 2026 James Holm
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to do so, subject to the
+following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR DEALING IN THE
+SOFTWARE.
 
 Originally built for UCLA Anderson MGMT 275 (Product Management), Spring 2026
