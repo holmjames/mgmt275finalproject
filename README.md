@@ -1,5 +1,5 @@
 MCP Manifest Generator
-Turn any API into a production-ready MCP server in minutes — with AI-readability scoring, safety scoping, and a test harness built in.
+Turn any API into a production-ready MCP server in minutes with AI-readability scoring, safety scoping, and a test harness built in.
 🔗 Live demo: jholm.co/mcp/#step-1
 📄 PR-FAQ: (https://ucla-my.sharepoint.com/:w:/g/personal/omarmadkour_ucla_edu/IQCWt5gOsyi2TrZUOh5L8MLzAaYh-66YfIf_0oppBEp2DDw?e=8lZx4g)
 🎥 2-min walkthrough: [Loom link]
