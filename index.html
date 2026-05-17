@@ -226,6 +226,7 @@
     }
     .diff-row.accepted { border-color: rgba(110,231,160,0.3); }
     .diff-row.rejected { border-color: rgba(248,113,113,0.25); opacity: 0.6; }
+    .diff-row.undecided { border-color: var(--dimmer); }
     .diff-header {
       padding: 0.9rem 1.2rem;
       background: rgba(240,236,228,0.02);
@@ -279,6 +280,7 @@
     }
     .diff-actions .status-tag.accepted { color: var(--green); }
     .diff-actions .status-tag.rejected { color: var(--red); }
+    .diff-actions .status-tag.undecided { color: var(--yellow); }
 
     .bulk-banner {
       padding: 1rem 1.4rem;
@@ -490,6 +492,125 @@
     .badge-blue { border: 1px solid rgba(91,156,245,0.25); color: var(--accent); }
     .badge-dim { border: 1px solid var(--dimmer); color: var(--dim); }
 
+    /* ===== Typed-Confirmation Modal ===== */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(8, 8, 8, 0.78);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      animation: modal-fade-in 0.18s ease;
+    }
+    .modal-overlay.active { display: flex; }
+    @keyframes modal-fade-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .modal {
+      background: #0e0e0e;
+      border: 1px solid var(--dimmer);
+      border-radius: 8px;
+      max-width: 480px;
+      width: 100%;
+      animation: modal-slide-in 0.22s ease;
+    }
+    @keyframes modal-slide-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .modal-header {
+      padding: 1.2rem 1.5rem;
+      border-bottom: 1px solid var(--dimmer);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-title {
+      font-family: 'Playfair Display', serif;
+      font-weight: 400;
+      font-size: 1.1rem;
+      color: var(--white);
+      letter-spacing: -0.01em;
+    }
+    .modal-close {
+      background: none; border: none;
+      color: var(--dim);
+      font-size: 1.4rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0; width: 24px; height: 24px;
+      transition: color 0.2s;
+    }
+    .modal-close:hover { color: var(--white); }
+    .modal-body {
+      padding: 1.4rem 1.5rem;
+    }
+    .modal-warn {
+      font-size: 0.82rem;
+      color: var(--white);
+      line-height: 1.6;
+      margin-bottom: 1.2rem;
+    }
+    .modal-warn code {
+      font-family: var(--mono);
+      color: var(--red);
+      font-size: 0.78rem;
+      padding: 0.1rem 0.35rem;
+      background: rgba(248,113,113,0.08);
+      border-radius: 3px;
+    }
+    .modal-instruction {
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 0.5rem;
+    }
+    .modal-tool-display {
+      padding: 0.7rem 1rem;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--dimmer);
+      border-radius: 4px;
+      margin-bottom: 0.7rem;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--white);
+      letter-spacing: 0.02em;
+    }
+    .modal-input {
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      background: rgba(240,236,228,0.04);
+      border: 1px solid var(--dimmer);
+      border-radius: 4px;
+      color: var(--white);
+      font-family: var(--mono);
+      font-size: 0.82rem;
+    }
+    .modal-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .modal-input.match { border-color: var(--green); }
+    .modal-input-hint {
+      font-size: 0.7rem;
+      color: var(--dim);
+      margin-top: 0.5rem;
+      min-height: 1rem;
+    }
+    .modal-input-hint.match { color: var(--green); }
+    .modal-input-hint.error { color: var(--red); }
+    .modal-footer {
+      padding: 1.1rem 1.5rem;
+      border-top: 1px solid var(--dimmer);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.6rem;
+    }
+
     /* ===== Misc ===== */
     .error-msg { color: var(--red); font-size: 0.82rem; padding: 0.8rem; background: rgba(248,113,113,0.08); border-radius: 4px; margin-bottom: 1rem; }
 
@@ -557,8 +678,7 @@
 
   <div class="container">
     <section class="hero">
-      <p class="hero-eyebrow">Developer Tool &middot; v2 Preview</p>
-      <h1>MCP Manifest<br />Generator.</h1>
+      <h1>MCP Manifest<br />Generator</h1>
       <p>
         Turn any API into a production-ready MCP server in minutes.
         With AI-readability optimization, safety scoping, and a test harness
@@ -806,6 +926,31 @@
         <div class="step-info"><div class="step-info-content"><strong>Classify</strong> &mdash; Flags every destructive operation (deletes, writes, charges, sends) with rationale and example invocation. Requires explicit override.</div></div>
         <div class="step-info"><div class="step-info-content"><strong>Test</strong> &mdash; Runs 50 simulated prompts per tool in a sandboxed harness. Catches malformed responses before they reach production.</div></div>
         <div class="step-info"><div class="step-info-content"><strong>Ship</strong> &mdash; Export the signed manifest or push to the public registry. Teammates auto-install on git pull.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Typed-Confirmation Modal ===== -->
+  <div class="modal-overlay" id="overrideModal" onclick="cancelOverrideModal(event)">
+    <div class="modal" onclick="event.stopPropagation();">
+      <div class="modal-header">
+        <h3 class="modal-title">Override safety scope</h3>
+        <button class="modal-close" onclick="cancelOverrideModal()" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-warn">
+          You are about to allow Claude to call <code id="modalToolName"></code> autonomously,
+          without the default approval step. This is a destructive operation that
+          <span id="modalRationale"></span>
+        </p>
+        <p class="modal-instruction">To confirm, type the tool name exactly:</p>
+        <div class="modal-tool-display"><code id="modalToolNameEcho"></code></div>
+        <input type="text" id="modalInput" class="modal-input" autocomplete="off" spellcheck="false" placeholder="Type tool name to enable Confirm" />
+        <p class="modal-input-hint" id="modalHint">&nbsp;</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="cancelOverrideModal()">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="modalConfirmBtn" onclick="confirmOverrideModal()" disabled>Confirm override</button>
       </div>
     </div>
   </div>
@@ -1360,7 +1505,7 @@ function toCamelCase(s) {
 const state = {
   currentStep: 1,
   manifest: null,        // parsed manifest
-  diffs: {},             // toolName -> { accepted: bool }  (default accepted=true)
+  diffs: {},             // toolName -> { accepted: bool | null }  (null = undecided, true = accepted, false = kept original)
   safety: {},            // toolName -> { category, override }
   harnessResults: null,  // null until run
   isStripeDemo: false    // true when user loaded the Stripe sample (enables rich mock data)
@@ -1457,11 +1602,11 @@ function generate() {
       // Diffs
       const hasOptimizerData = state.isStripeDemo && STRIPE_OPTIMIZER_DATA[tool.name];
       if (hasOptimizerData) {
-        state.diffs[tool.name] = { accepted: true, optimizer: STRIPE_OPTIMIZER_DATA[tool.name] };
+        state.diffs[tool.name] = { accepted: null, optimizer: STRIPE_OPTIMIZER_DATA[tool.name] };
       } else {
         // Generic mock: synthesize a plausible "optimized" version
         state.diffs[tool.name] = {
-          accepted: true,
+          accepted: null,
           optimizer: synthesizeOptimizerEntry(tool)
         };
       }
@@ -1542,9 +1687,14 @@ function renderDiffView() {
     const d = state.diffs[tool.name];
     if (!d || !d.optimizer) continue;
     const opt = d.optimizer;
-    const stateClass = d.accepted ? 'accepted' : 'rejected';
-    const statusText = d.accepted ? 'Accepted' : 'Original kept';
-    const statusCls = d.accepted ? 'accepted' : 'rejected';
+    let stateClass, statusText, statusCls;
+    if (d.accepted === true) {
+      stateClass = 'accepted'; statusText = 'Accepted'; statusCls = 'accepted';
+    } else if (d.accepted === false) {
+      stateClass = 'rejected'; statusText = 'Original kept'; statusCls = 'rejected';
+    } else {
+      stateClass = 'undecided'; statusText = 'Awaiting review'; statusCls = 'undecided';
+    }
 
     html += '<div class="diff-row ' + stateClass + '" id="diff-' + escAttr(tool.name) + '">';
     html += '<div class="diff-header">';
@@ -1650,15 +1800,113 @@ function renderSafetyGroup(title, tools, dotColor, description) {
   return html;
 }
 
+// State for the currently-pending override
+let pendingOverrideTool = null;
+
 function toggleSafetyOverride(toolName) {
   if (!state.safety[toolName]) return;
-  if (!state.safety[toolName].override) {
-    const ok = confirm('Allow Claude to call ' + toolName + ' autonomously, without an approval step? Type carefully — this disables the default safety scope.');
-    if (!ok) return;
+  // If already overridden, just toggle back without a modal (re-enabling approval is a safer action)
+  if (state.safety[toolName].override) {
+    state.safety[toolName].override = false;
+    renderSafetyView();
+    return;
   }
-  state.safety[toolName].override = !state.safety[toolName].override;
+  // Otherwise, open the typed confirmation modal
+  openOverrideModal(toolName);
+}
+
+function openOverrideModal(toolName) {
+  const s = state.safety[toolName];
+  if (!s) return;
+  pendingOverrideTool = toolName;
+
+  document.getElementById('modalToolName').textContent = toolName;
+  document.getElementById('modalToolNameEcho').textContent = toolName;
+  document.getElementById('modalRationale').textContent = s.rationale || 'cannot be undone.';
+
+  const input = document.getElementById('modalInput');
+  input.value = '';
+  input.classList.remove('match');
+  const hint = document.getElementById('modalHint');
+  hint.textContent = '';
+  hint.classList.remove('match', 'error');
+  document.getElementById('modalConfirmBtn').disabled = true;
+
+  const overlay = document.getElementById('overrideModal');
+  overlay.classList.add('active');
+
+  setTimeout(function() { input.focus(); }, 50);
+}
+
+function cancelOverrideModal(event) {
+  // Called from the overlay click handler; only close if the actual overlay was clicked
+  if (event && event.target && event.target.id !== 'overrideModal' && event.type === 'click') return;
+  pendingOverrideTool = null;
+  document.getElementById('overrideModal').classList.remove('active');
+}
+
+function confirmOverrideModal() {
+  if (!pendingOverrideTool) return;
+  const input = document.getElementById('modalInput').value.trim();
+  if (input.toLowerCase() !== pendingOverrideTool.toLowerCase()) return;
+  state.safety[pendingOverrideTool].override = true;
+  pendingOverrideTool = null;
+  document.getElementById('overrideModal').classList.remove('active');
   renderSafetyView();
 }
+
+// Live validation of the modal input — bind directly since script runs at end of body
+(function bindModalInput() {
+  const input = document.getElementById('modalInput');
+  if (!input) return;
+  input.addEventListener('input', function() {
+    if (!pendingOverrideTool) return;
+    const val = this.value.trim();
+    const hint = document.getElementById('modalHint');
+    const btn = document.getElementById('modalConfirmBtn');
+    if (val.length === 0) {
+      this.classList.remove('match');
+      hint.textContent = '';
+      hint.classList.remove('match', 'error');
+      btn.disabled = true;
+      return;
+    }
+    if (val.toLowerCase() === pendingOverrideTool.toLowerCase()) {
+      this.classList.add('match');
+      hint.textContent = 'Match — Confirm override is now enabled.';
+      hint.classList.add('match');
+      hint.classList.remove('error');
+      btn.disabled = false;
+    } else if (pendingOverrideTool.toLowerCase().startsWith(val.toLowerCase())) {
+      this.classList.remove('match');
+      hint.textContent = 'Keep typing...';
+      hint.classList.remove('match', 'error');
+      btn.disabled = true;
+    } else {
+      this.classList.remove('match');
+      hint.textContent = 'Doesn\'t match the tool name.';
+      hint.classList.add('error');
+      hint.classList.remove('match');
+      btn.disabled = true;
+    }
+  });
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !document.getElementById('modalConfirmBtn').disabled) {
+      e.preventDefault();
+      confirmOverrideModal();
+    }
+    if (e.key === 'Escape') {
+      cancelOverrideModal();
+    }
+  });
+})();
+
+// Global Escape handler for the modal
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && document.getElementById('overrideModal').classList.contains('active')) {
+    cancelOverrideModal();
+  }
+});
 
 /* =====================================================================
    STEP 4 — TEST HARNESS
